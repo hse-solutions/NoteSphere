@@ -3,6 +3,7 @@ import 'package:note_sphere/helpers/snackbar.dart';
 import 'package:note_sphere/models/todo_model.dart';
 import 'package:note_sphere/services/todo_service.dart';
 import 'package:note_sphere/utils/colors.dart';
+import 'package:note_sphere/utils/router.dart';
 import 'package:note_sphere/widgets/todo_card.dart';
 
 class TodoTab extends StatefulWidget {
@@ -37,7 +38,7 @@ class _TodoTabState extends State<TodoTab> {
         time: todo.time,
         isDone: true,
       );
-      await TodoService().editTodo(
+      await TodoService().markAsDone(
         updatedTodo,
       ); // කලින් සර්විස් එකේ updateTodo වගේ එකක්
 
@@ -45,6 +46,8 @@ class _TodoTabState extends State<TodoTab> {
         widget.incompletedTodos.remove(todo);
         widget.completedTodos.add(updatedTodo);
       });
+
+      AppRouter.router.go("/todos");
 
       AppHelpers.showSnackBar(context, "Marked as Done");
     } catch (e) {

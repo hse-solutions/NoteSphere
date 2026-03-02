@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:note_sphere/models/note_model.dart';
+import 'package:note_sphere/models/todo_model.dart';
+import 'package:note_sphere/services/note_service.dart';
+import 'package:note_sphere/services/todo_service.dart';
 import 'package:note_sphere/utils/router.dart';
 import 'package:note_sphere/utils/text_style.dart';
+import 'package:note_sphere/widgets/main_screen_todo_card.dart';
 import 'package:note_sphere/widgets/notes_todo_card.dart';
 import 'package:note_sphere/widgets/progress_card.dart';
 
@@ -12,6 +17,41 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  List<Note> allNotes = [];
+  List<Todo> allTodos = [];
+
+  @override
+  void initState() {
+    _checkIfUserIsNew();
+    super.initState();
+    setState(() {});
+  }
+
+  void _checkIfUserIsNew() async {
+    final bool isNewUser =
+        await NoteService().isNewUser() || await TodoService().isNewUser();
+    if (isNewUser) {
+      NoteService().createInitialNotes();
+      TodoService().createInizialTodos();
+    }
+    _loadNotes();
+    _loadTodos();
+  }
+
+  Future<void> _loadNotes() async {
+    final List<Note> loadedNotes = await NoteService().loadNotes();
+    setState(() {
+      allNotes = loadedNotes;
+    });
+  }
+
+  Future<void> _loadTodos() async {
+    final List<Todo> loadedTodos = await TodoService().loadTodos();
+    setState(() {
+      allTodos = loadedTodos;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,7 +63,11 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           children: [
             SizedBox(height: 20),
-            ProgressCard(completedTasks: 5, totalTasks: 10),
+            ProgressCard(
+              completedTasks: allTodos.where((todo) => todo.isDone).length,
+
+              totalTasks: allTodos.length,
+            ),
             SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -34,7 +78,7 @@ class _HomePageState extends State<HomePage> {
                   },
                   child: NotesTodoCard(
                     title: "Notes",
-                    description: "You have 12 notes",
+                    description: "You have ${allNotes.length.toString()} notes",
                     icon: Icons.note_add_outlined,
                   ),
                 ),
@@ -45,20 +89,74 @@ class _HomePageState extends State<HomePage> {
                   },
                   child: NotesTodoCard(
                     title: "To-Do",
-                    description: "You have 8 tasks",
+                    description: "You have ${allTodos.length.toString()} tasks",
                     icon: Icons.check_circle_outline,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 30),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("Today's Progress", style: AppTextStyles.appSubtitle),
-                Text("See All", style: AppTextStyles.appButton),
+
+                InkWell(
+                  onTap: () {
+                    AppRouter.router.push("/todos");
+                  },
+                  child: Text("See All", style: AppTextStyles.appButton),
+                ),
               ],
             ),
+            const SizedBox(height: 20),
+            allTodos.length == 0
+                ? Container(
+                    margin: EdgeInsets.only(
+                      top: MediaQuery.of(context).size.height * 0.1,
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            "No tasks for today , Add some tasks to get started!",
+                            style: AppTextStyles.appDescription.copyWith(
+                              color: Colors.grey,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(
+                                Colors.blue,
+                              ),
+                            ),
+                            onPressed: () {
+                              AppRouter.router.push("/todos");
+                            },
+                            child: const Text("Add Task"),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Expanded(
+                    child: ListView.builder(
+                      itemCount: allTodos.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsetsGeometry.only(bottom: 20),
+                          child: MainScreenTodoCard(
+                            title: allTodos[index].title,
+                            isDone: allTodos[index].isDone,
+                            date: allTodos[index].date.toString(),
+                            time: allTodos[index].time.toString(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ],
         ),
       ),
